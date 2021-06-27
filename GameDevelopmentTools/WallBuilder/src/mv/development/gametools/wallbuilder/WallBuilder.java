@@ -6,7 +6,9 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
@@ -16,7 +18,7 @@ public class WallBuilder {
 
     public static void main(String[] args) throws Exception {
 
-        String input = "./wallPieces";
+        String input = "./wallSegments";
         String output = "./combinedWalls";
 
         // Verify argument with path to location of the wall piece images
@@ -64,6 +66,9 @@ public class WallBuilder {
             Logger.warn("Width", pieceDimension.width, "and height", pieceDimension.height, "are not equal!");
         }
 
+        HashMap<Integer, Integer> duplicatesMap = new HashMap<Integer, Integer>();
+        FileWriter duplicates = new FileWriter(output +"/duplicates.txt");
+
         for (int i = 0; i < 256; ++i) {
             String binaryString = getBinaryString(i);
             Logger.trace("Creating wall image", i, "aka", binaryString);
@@ -108,13 +113,25 @@ public class WallBuilder {
                 g.fillRect(0, 0, SIZE, borderHeight);
             }
 
+            System.out.println("Hash: " + i + ": "+ hash(combined));
+
+            int imgHash = hash(combined);
+            int duplicate = duplicatesMap.containsKey(imgHash) ? duplicatesMap.get(imgHash) : i;
+            duplicatesMap.put(imgHash, duplicate);
+            duplicates.write(i+":"+duplicate +"\n");
+
             g.dispose();
             // Save as new image
             ImageIO.write(combined, "PNG", new File(output, i + "." + extension));
         }
+        duplicates.close();
     }
 
-    private static String getBinaryString(int i) {
+    private static int hash(BufferedImage i) {
+        return Arrays.hashCode(i.getRGB(0, 0, i.getWidth(), i.getHeight(), null, 0, i.getWidth()));
+    }
+
+        private static String getBinaryString(int i) {
         String binaryString = Integer.toBinaryString(i);
         while (binaryString.length() < 8) {
             binaryString = "0" + binaryString;
